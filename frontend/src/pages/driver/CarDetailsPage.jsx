@@ -9,16 +9,18 @@ export default function CarDetailsPage() {
   const { user, updateUser } = useAuth();
 
   const [car, setCar] = useState({
-    make: "",
-    model: "",
-    year: "",
-    plateNumber: "",
-    color: "",
-    licenseExpiryDate: "",
+    make: user?.carDetails?.make || "",
+    model: user?.carDetails?.model || "",
+    year: user?.carDetails?.year || "",
+    plateNumber: user?.carDetails?.plateNumber || "",
+    color: user?.carDetails?.color || "",
+    licenseExpiryDate: user?.carDetails?.licenseExpiryDate || "",
     licensePhoto: null,
   });
 
-  const [licenseFileName, setLicenseFileName] = useState("");
+  const [licenseFileName, setLicenseFileName] = useState(
+    user?.carDetails?.licensePhotoName || ""
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,13 +36,12 @@ export default function CarDetailsPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!car.licensePhoto) {
+    if (!car.licensePhoto && !licenseFileName) {
       alert("Please upload your licence photo.");
       return;
     }
 
-    // Save in auth user state (mock storage flow)
-    updateUser({
+    updateUser?.({
       carDetailsCompleted: true,
       carDetails: {
         make: car.make,
@@ -49,8 +50,10 @@ export default function CarDetailsPage() {
         plateNumber: car.plateNumber,
         color: car.color,
         licenseExpiryDate: car.licenseExpiryDate,
-        licensePhotoName: licenseFileName,
+        licensePhotoName: car.licensePhoto ? licenseFileName : licenseFileName,
       },
+      vehicleModel: `${car.make} ${car.model}`.trim(),
+      licensePlate: car.plateNumber,
     });
 
     navigate("/driver/verification-consent");
@@ -59,22 +62,18 @@ export default function CarDetailsPage() {
   if (!user) return null;
 
   return (
-    <div className="auth-page driver-page">
-      <div className="auth-card driver-card">
-        <div className="auth-left driver-left">
-          <div className="watermark">DR</div>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-left">
+          <div className="watermark">SR</div>
           <div className="brand-content">
-            <h2>Driver Profile Setup</h2>
-            <p>
-              Complete your car and licence details to unlock trip access.
-              This helps keep the platform safe and verified.
-            </p>
+            <h2>SecureRide</h2>
+            <p>Driver safety and verification platform.</p>
           </div>
           <div className="left-footer">
-            <span>Clover</span>
-            <span>Sprout</span>
-            <span>Willow</span>
-            <span>Meadow</span>
+            <span>About</span>
+            <span>FAQ</span>
+            <span>Support</span>
           </div>
         </div>
 
@@ -82,9 +81,7 @@ export default function CarDetailsPage() {
           <ProgressStepper currentStep={1} />
 
           <h1>Car Details</h1>
-          <p className="subtitle">
-            Please provide your vehicle and licence information.
-          </p>
+          <p className="subtitle">Please provide your vehicle and licence information.</p>
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="field">
@@ -161,18 +158,13 @@ export default function CarDetailsPage() {
             <div className="field">
               <label>Upload Licence Photo</label>
               <label className="file-upload">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  required
-                />
+                <input type="file" accept="image/*" onChange={handleFileChange} />
                 <span>{licenseFileName || "Choose licence photo"}</span>
               </label>
             </div>
 
-            <button className="btn-primary driver-btn" type="submit">
-              Save & Continue to Face Verification
+            <button className="btn-primary" type="submit">
+              Save & Continue
             </button>
           </form>
         </div>

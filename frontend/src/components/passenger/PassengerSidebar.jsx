@@ -1,11 +1,36 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PassengerSidebar() {
+  const { user } = useAuth();
   const linkClass = ({ isActive }) => `nav-item ${isActive ? "active" : ""}`;
+
+  const displayName =
+    user?.fullNames?.trim() ||
+    user?.name?.trim() ||
+    user?.email?.split("@")[0] ||
+    "Passenger";
 
   return (
     <nav className="sidebar">
-      <div className="logo-mark passenger">SR</div>
+      {/* Replaced logo with user name */}
+      <div
+        style={{
+          fontWeight: 800,
+          fontSize: "0.95rem",
+          padding: "10px 12px",
+          marginBottom: 8,
+          borderRadius: 10,
+          background: "rgba(255,255,255,0.08)",
+          color: "#fff",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+        title={displayName}
+      >
+        {displayName}
+      </div>
 
       <NavLink to="/passenger/dashboard" className={linkClass} title="Dashboard">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -55,6 +80,18 @@ export default function PassengerSidebar() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         <span>Notifications</span>
+      </NavLink>
+
+      <NavLink
+        to="/passenger/emergency-contacts"
+        className={linkClass}
+        title="Emergency Contacts"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.65-7 10-7 10z" />
+          <path d="M9 12h6M12 9v6" />
+        </svg>
+        <span>Emergency Contacts</span>
       </NavLink>
 
       <div className="nav-spacer" />

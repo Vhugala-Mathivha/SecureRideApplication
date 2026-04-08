@@ -9,21 +9,35 @@ export default function PassengerProfilePage() {
   const { user, updateUser, logout } = useAuth();
   const [editing, setEditing] = useState(false);
 
-  const initialName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.fullNames || "";
+  const initialName =
+    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+    user?.fullNames ||
+    "";
+
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState(user?.phone || "");
 
-  const initials = useMemo(() => {
-    if (user?.initials) return user.initials;
-    const [f = "", l = ""] = name.split(" ");
-    return `${f[0] || ""}${l[0] || ""}`.toUpperCase() || "??";
-  }, [name, user]);
+  const stats = useMemo(
+    () => ({
+      verified: user?.isVerified ? "Yes" : "No",
+      rating: user?.rating ?? "—",
+      totalTrips: user?.totalTrips ?? 0,
+      accountType: user?.accountType || "passenger",
+    }),
+    [user]
+  );
 
   const saveProfile = () => {
-    const [firstName, ...rest] = name.trim().split(" ");
+    const [firstName, ...rest] = (name || "").trim().split(" ");
     const lastName = rest.join(" ");
-    updateUser?.({ firstName, lastName, email, phone, initials });
+    updateUser?.({
+      firstName: firstName || "",
+      lastName: lastName || "",
+      fullNames: name,
+      email,
+      phone,
+    });
     setEditing(false);
     alert("Profile updated successfully!");
   };
@@ -38,75 +52,127 @@ export default function PassengerProfilePage() {
     <div className="shell">
       <PassengerSidebar />
       <div className="main">
-        <PassengerTopbar title="My Profile" subtitle="Account settings and preferences" />
+        <PassengerTopbar
+          title="My Profile"
+          subtitle="Account information and preferences"
+        />
 
-        <div className="card">
-          <div className="profile-header">
-            <div className="profile-avatar passenger">{initials}</div>
-            <div className="profile-name">{name || "—"}</div>
-            <div className="profile-email">{email || "—"}</div>
-            <div className="profile-badges">
-              <span className={`badge ${user?.isVerified ? "badge-p" : "badge-warn"}`}>
-                {user?.isVerified ? "✓ Verified" : "⚠ Unverified"}
-              </span>
-              <span className="badge badge-info">{user?.rating ?? "—"} ★</span>
-              <span className="badge badge-ok">{user?.totalTrips ?? 0} trips</span>
+        <div className="card profile-table-card">
+          <div className="profile-table-header">
+            <h3>Passenger Details</h3>
+            <div className="profile-table-actions">
+              {!editing ? (
+                <button
+                  className="btn btn-p btn-sm"
+                  type="button"
+                  onClick={() => setEditing(true)}
+                >
+                  Edit
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    type="button"
+                    onClick={() => setEditing(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-p btn-sm"
+                    type="button"
+                    onClick={saveProfile}
+                  >
+                    Save
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="section-title">Personal Info</div>
-
-          <div className="profile-row">
-            <span className="profile-label">Full Name</span>
-            {!editing ? (
-              <span className="profile-val">{name || "—"}</span>
-            ) : (
-              <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-            )}
+          <div className="profile-table-wrap">
+            <table className="profile-table">
+              <tbody>
+                <tr>
+                  <th>Full Name</th>
+                  <td>
+                    {!editing ? (
+                      name || "—"
+                    ) : (
+                      <input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        style={tableInputStyle}
+                      />
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <th>Email</th>
+                  <td>
+                    {!editing ? (
+                      email || "—"
+                    ) : (
+                      <input
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={tableInputStyle}
+                      />
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <th>Phone</th>
+                  <td>
+                    {!editing ? (
+                      phone || "—"
+                    ) : (
+                      <input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        style={tableInputStyle}
+                      />
+                    )}
+                  </td>
+                </tr>
+                <tr>
+                  <th>Account Type</th>
+                  <td style={{ textTransform: "capitalize" }}>{stats.accountType}</td>
+                </tr>
+                <tr>
+                  <th>Verified</th>
+                  <td>{stats.verified}</td>
+                </tr>
+                <tr>
+                  <th>Rating</th>
+                  <td>{stats.rating} ★</td>
+                </tr>
+                <tr>
+                  <th>Total Trips</th>
+                  <td>{stats.totalTrips}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <div className="profile-row">
-            <span className="profile-label">Email</span>
-            {!editing ? (
-              <span className="profile-val">{email || "—"}</span>
-            ) : (
-              <input value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
-            )}
+          <div style={{ marginTop: 14 }}>
+            <button className="btn btn-danger btn-sm" type="button" onClick={signOut}>
+              Sign Out
+            </button>
           </div>
-
-          <div className="profile-row">
-            <span className="profile-label">Phone</span>
-            {!editing ? (
-              <span className="profile-val">{phone || "—"}</span>
-            ) : (
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
-            )}
-          </div>
-
-          <div className="grid-2 mt-s">
-            {!editing ? (
-              <button className="btn btn-outline btn-sm" onClick={() => setEditing(true)}>Edit</button>
-            ) : (
-              <>
-                <button className="btn btn-outline btn-sm" onClick={() => setEditing(false)}>Cancel</button>
-                <button className="btn btn-p btn-sm" onClick={saveProfile}>Save Changes</button>
-              </>
-            )}
-          </div>
-
-          <button className="btn btn-danger btn-full mt" onClick={signOut}>Sign Out</button>
         </div>
       </div>
     </div>
   );
 }
 
-const inputStyle = {
-  width: 220,
-  background: "var(--bg3)",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius-xs)",
-  padding: "6px 10px",
-  color: "var(--text)",
-  fontSize: 13,
+const tableInputStyle = {
+  width: "100%",
+  maxWidth: 360,
+  background: "#fff",
+  border: "1px solid #d0d5dd",
+  borderRadius: 8,
+  padding: "8px 10px",
+  fontSize: 14,
+  color: "#101828",
 };

@@ -1,54 +1,143 @@
-import { useMemo, useState } from "react";
-import PassengerSidebar from "../../components/passenger/PassengerSidebar";
-import PassengerTopbar from "../../components/passenger/PassengerTopbar";
+import { useCallback, useEffect, useState } from "react";
+import PassengerSidebar from "./PassengerSidebar";
+import PassengerTopbar from "./PassengerTopbar";
+import { useAuth } from "../../context/AuthContext";
+import { apiRequest } from "../../api/client";
 import "../../styles/auth.css";
 import "../../styles/global.css";
 
 export default function PassengerNotificationsPage() {
-  const [items, setItems] = useState([
-    { id: 1, icon: "🍱", bg: "rgba(0,212,170,0.12)", title: "Verification step completed", body: "Your email has been successfully verified.", time: "2 hours ago", unread: true },
-    { id: 2, icon: "🚗", bg: "rgba(0,153,255,0.12)", title: "Trip completed — Menlyn to Hatfield", body: "Your ride with Thabo M. is complete. Fare: R48.", time: "5 hours ago", unread: true },
-    { id: 3, icon: "🎤", bg: "rgba(255,107,53,0.12)", title: "Audio monitoring reminder", body: "Enable AI audio monitoring to complete verification.", time: "Yesterday, 09:15", unread: false },
-  ]);
+  const { user } = useAuth();
 
-  const unread = useMemo(() => items.filter((n) => n.unread).length, [items]);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const markRead = (id) => {
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+  const loadNotifications = useCallback(async () => {
+    if (!user?.id) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+      const res = await apiRequest(
+        `/notifications?userId=${user.id}&accountType=passenger`,
+        { method: "GET" }
+      );
+      setItems(Array.isArray(res) ? res : res.notifications || []);
+    } catch (e) {
+      setError(e.message || "Failed to load notifications.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  const clearAll = async () => {
+    if (!user?.id) return;
+
+    try {
+      setBusy(true);
+      setError("");
+      setSuccess("");
+
+      await apiRequest("/notifications/clear", {
+        method: "POST",
+        body: { userId: user.id, accountType: "passenger" },
+      });
+
+      setItems([]);
+      setSuccess("All notifications cleared.");
+    } catch (e) {
+      setError(e.message || "Failed to clear notifications.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const markAllRead = () => {
-    setItems((prev) => prev.map((n) => ({ ...n, unread: false })));
+  const markRead = async (id) => {
+    try {
+      await apiRequest(`/notifications/${id}/read`, { method: "POST" });
+      setItems((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } catch {
+      // keep UI unchanged if mark-read fails silently
+    }
   };
 
   return (
     <div className="shell">
       <PassengerSidebar />
       <div className="main">
-        <PassengerTopbar title="Notifications" subtitle="Your alerts and updates" />
+        <PassengerTopbar
+          title="Notifications"
+          subtitle="Your alerts and updates"
+        />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <span className="badge badge-p">{unread} unread</span>
-          <button className="btn btn-outline btn-sm" onClick={markAllRead}>Mark all read</button>
+        {error && <div className="form-error">{error}</div>}
+        {success && <div className="form-success">{success}</div>}
+
+        <div className="card" style={{ marginBottom: 12 }}>
+          <button
+            className="btn btn-p"
+            type="button"
+            onClick={clearAll}
+            disabled={busy || loading}
+            style={{
+              backgroundColor: "#16a34a",
+              borderColor: "#16a34a",
+              color: "#fff",
+            }}
+          >
+            {busy ? "Clearing..." : "Clear Notifications"}
+          </button>
         </div>
 
-        <div>
-          {items.map((n) => (
-            <div className="card mb" key={n.id} style={{ padding: 0 }}>
-              <div className={`notif-item ${n.unread ? "notif-unread" : ""}`} style={{ padding: "14px 20px" }}>
-                <div className="notif-icon" style={{ background: n.bg }}>{n.icon}</div>
-                <div className="notif-text">
-                  <div className="notif-title">{n.title}</div>
-                  <div className="notif-sub">{n.body}</div>
-                  <div className="notif-time">{n.time}</div>
+        {loading ? (
+          <div className="card">Loading notifications...</div>
+        ) : items.length === 0 ? (
+          <div className="card">
+            <div style={{ color: "var(--text2)" }}>No notifications yet.</div>
+          </div>
+        ) : (
+          <div id="drivers-list">
+            {items.map((n) => (
+              <div
+                key={n.id}
+                className={`notice-card ${n.read ? "notice-read" : "notice-unread"}`}
+                onClick={() => !n.read && markRead(n.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === " ") && !n.read) {
+                    markRead(n.id);
+                  }
+                }}
+              >
+                <div className="notice-left">
+                  <span className={`notice-dot dot-${n.kind || "info"}`} />
                 </div>
-                {n.unread ? (
-                  <button className="btn btn-ghost btn-sm" onClick={() => markRead(n.id)}>✕</button>
-                ) : null}
+
+                <div className="notice-body">
+                  <div className="notice-title">{n.title}</div>
+                  <div className="notice-message">{n.message}</div>
+                  <div className="notice-time">{n.createdAt}</div>
+                </div>
+
+                {!n.read && <span className="notice-pill">New</span>}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
