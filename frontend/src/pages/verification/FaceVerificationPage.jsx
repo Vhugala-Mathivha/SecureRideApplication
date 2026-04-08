@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import ProgressStepper from "../../components/ProgressStepper";
@@ -6,16 +7,24 @@ import "../../styles/auth.css";
 export default function FaceVerificationPage() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const rolePrefix = user?.accountType === "passenger" ? "/passenger" : "/driver";
 
   const handleVerify = () => {
+    setError("");
+    setSuccess("");
+
     // TODO: replace with real webcam + backend verification
     updateUser({ faceVerified: true });
-    navigate(`${rolePrefix}/dashboard`);
+    setSuccess("Face verification completed.");
+    setTimeout(() => navigate(`${rolePrefix}/dashboard`), 700);
   };
 
   const handleSkip = () => {
+    setError("");
+    setSuccess("");
     navigate(`${rolePrefix}/dashboard`);
   };
 
@@ -29,6 +38,9 @@ export default function FaceVerificationPage() {
           <p className="subtitle">
             Verify your face to complete account safety checks.
           </p>
+
+          {error && <div className="form-error">{error}</div>}
+          {success && <div className="form-success">{success}</div>}
 
           <div className="consent-box">
             <p>

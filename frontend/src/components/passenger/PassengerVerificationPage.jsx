@@ -1,3 +1,4 @@
+import { useState } from "react";
 import PassengerSidebar from "../../components/passenger/PassengerSidebar";
 import PassengerTopbar from "../../components/passenger/PassengerTopbar";
 import { useAuth } from "../../context/AuthContext";
@@ -6,6 +7,7 @@ import "../../styles/global.css";
 
 export default function PassengerVerificationPage() {
   const { user } = useAuth();
+  const [info, setInfo] = useState("");
   const step = user?.verificationStep || 1;
 
   const steps = [
@@ -31,6 +33,8 @@ export default function PassengerVerificationPage() {
           </div>
         </div>
 
+        {info && <div className="form-success">{info}</div>}
+
         <div className="section-title">Verification Steps</div>
         <div className="card mb">
           {steps.map((s, i) => (
@@ -53,16 +57,23 @@ export default function PassengerVerificationPage() {
           <div>
             <div className="section-title">Upload ID Document</div>
             <div className="card">
-              <div className="dropzone" onClick={() => alert("File picker coming soon")}>
+              <div className="dropzone" onClick={() => setInfo("File picker coming soon.")}>
                 <div className="dropzone-icon">🪪</div>
                 <div className="dropzone-label">Tap to upload or take a photo</div>
                 <div className="dropzone-hint">SA ID Book, Smart Card, or Passport · JPG / PNG / PDF</div>
               </div>
               <div className="grid-2 mt">
-                <button className="btn btn-outline">📷 Take Photo</button>
-                <button className="btn btn-outline">📁 Upload File</button>
+                <button className="btn btn-outline" onClick={() => setInfo("Camera capture coming soon.")}>
+                  📷 Take Photo
+                </button>
+                <button className="btn btn-outline" onClick={() => setInfo("File upload coming soon.")}>
+                  📁 Upload File
+                </button>
               </div>
-              <button className="btn btn-p btn-full mt" onClick={() => alert("ID submitted for verification.")}>
+              <button
+                className="btn btn-p btn-full mt"
+                onClick={() => setInfo("ID submitted for verification.")}
+              >
                 Submit ID for Verification
               </button>
             </div>

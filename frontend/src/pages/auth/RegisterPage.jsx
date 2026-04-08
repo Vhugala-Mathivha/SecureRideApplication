@@ -20,6 +20,8 @@ export default function RegisterPage() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -27,9 +29,12 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
 
+    // keep this one client-side for immediate UX feedback
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
 
@@ -41,15 +46,15 @@ export default function RegisterPage() {
         body: JSON.stringify({
           fullNames: formData.fullNames.trim(),
           email: formData.email.trim().toLowerCase(),
-          password: formData.password,
+          password: formData.password.trim(),
           accountType: formData.accountType,
         }),
       });
 
-      alert("Registration successful. Please login.");
-      navigate("/login");
+      setSuccess("Registration successful. Redirecting to login...");
+      setTimeout(() => navigate("/login"), 800);
     } catch (err) {
-      alert(err.message || "Registration failed");
+      setError(err.message || "Registration failed");
     } finally {
       setSubmitting(false);
     }
@@ -76,6 +81,9 @@ export default function RegisterPage() {
           <p className="subtitle">Fill in your details to register.</p>
 
           <form className="auth-form" onSubmit={handleSubmit}>
+            {error && <div className="form-error">{error}</div>}
+            {success && <div className="form-success">{success}</div>}
+
             <div className="field">
               <label>Full Names (as per ID)</label>
               <input
@@ -84,7 +92,6 @@ export default function RegisterPage() {
                 placeholder="e.g. Vhugala Mathivha"
                 value={formData.fullNames}
                 onChange={handleChange}
-                required
               />
             </div>
 
@@ -96,13 +103,12 @@ export default function RegisterPage() {
                 placeholder="South African ID Number"
                 value={formData.idNumber}
                 onChange={handleChange}
-                required
               />
             </div>
 
             <div className="field">
               <label>Gender</label>
-              <select name="gender" value={formData.gender} onChange={handleChange} required>
+              <select name="gender" value={formData.gender} onChange={handleChange}>
                 <option value="">Select gender</option>
                 <option value="female">Female</option>
                 <option value="male">Male</option>
@@ -113,7 +119,7 @@ export default function RegisterPage() {
 
             <div className="field">
               <label>Race</label>
-              <select name="race" value={formData.race} onChange={handleChange} required>
+              <select name="race" value={formData.race} onChange={handleChange}>
                 <option value="">Select race</option>
                 <option value="african">African</option>
                 <option value="coloured">Coloured</option>
@@ -126,12 +132,7 @@ export default function RegisterPage() {
 
             <div className="field">
               <label>Account Type</label>
-              <select
-                name="accountType"
-                value={formData.accountType}
-                onChange={handleChange}
-                required
-              >
+              <select name="accountType" value={formData.accountType} onChange={handleChange}>
                 <option value="">Select account type</option>
                 <option value="driver">Driver</option>
                 <option value="passenger">Passenger</option>
@@ -146,7 +147,6 @@ export default function RegisterPage() {
                 placeholder="Street, suburb, city, postal code"
                 value={formData.address}
                 onChange={handleChange}
-                required
               />
             </div>
 
@@ -158,7 +158,6 @@ export default function RegisterPage() {
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
-                required
               />
             </div>
 
@@ -170,7 +169,6 @@ export default function RegisterPage() {
                 placeholder="+27 71 234 5678"
                 value={formData.contactNumber}
                 onChange={handleChange}
-                required
               />
             </div>
 
@@ -182,7 +180,6 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
-                required
               />
             </div>
 
@@ -194,7 +191,6 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                required
               />
             </div>
 

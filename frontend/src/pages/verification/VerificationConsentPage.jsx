@@ -8,12 +8,15 @@ export default function VerificationConsentPage() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState("");
 
   const rolePrefix = user?.accountType === "passenger" ? "/passenger" : "/driver";
 
   const handleContinue = () => {
+    setError("");
+
     if (!agreed) {
-      alert("Please tick the consent checkbox before proceeding.");
+      setError("Please tick the consent checkbox before proceeding.");
       return;
     }
 
@@ -29,6 +32,8 @@ export default function VerificationConsentPage() {
 
           <h1>Live Verification Consent</h1>
           <p className="subtitle">Please read carefully before continuing.</p>
+
+          {error && <div className="form-error">{error}</div>}
 
           <div className="consent-box">
             <p>

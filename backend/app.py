@@ -19,14 +19,21 @@ def register():
 
     full_names = (data.get("fullNames") or "").strip()
     email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
+    password = (data.get("password") or "").strip()
     account_type = (data.get("accountType") or "").strip().lower()
 
-    if not full_names or not email or not password or not account_type:
-        return jsonify({"error": "fullNames, email, password, accountType are required"}), 400
+    # Backend-controlled validation (field-specific errors)
+    if not full_names:
+        return jsonify({"error": "Full names is required"}), 400
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+    if not password:
+        return jsonify({"error": "Password is required"}), 400
+    if not account_type:
+        return jsonify({"error": "Account type is required"}), 400
 
     if account_type not in ["driver", "passenger"]:
-        return jsonify({"error": "accountType must be 'driver' or 'passenger'"}), 400
+        return jsonify({"error": "Account type must be 'driver' or 'passenger'"}), 400
 
     existing = next((u for u in users if u["email"] == email), None)
     if existing:
@@ -54,10 +61,13 @@ def login():
     data = request.get_json(silent=True) or {}
 
     email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
+    password = (data.get("password") or "").strip()
 
-    if not email or not password:
-        return jsonify({"error": "Email and password are required"}), 400
+    # Backend-controlled validation (field-specific errors)
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+    if not password:
+        return jsonify({"error": "Password is required"}), 400
 
     user = next((u for u in users if u["email"] == email and u["password"] == password), None)
     if not user:

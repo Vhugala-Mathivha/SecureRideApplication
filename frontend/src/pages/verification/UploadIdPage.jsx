@@ -9,12 +9,23 @@ export default function UploadIdPage() {
   const { user, updateUser } = useAuth();
   const [docType, setDocType] = useState("");
   const [file, setFile] = useState(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const rolePrefix = user?.accountType === "passenger" ? "/passenger" : "/driver";
 
   const handleNext = () => {
-    if (!docType) return alert("Please select ID type.");
-    if (!file) return alert("Please upload your ID document.");
+    setError("");
+    setSuccess("");
+
+    if (!docType) {
+      setError("Please select ID type.");
+      return;
+    }
+    if (!file) {
+      setError("Please upload your ID document.");
+      return;
+    }
 
     updateUser({
       idDocumentType: docType,
@@ -22,7 +33,8 @@ export default function UploadIdPage() {
       idDocumentUploaded: true,
     });
 
-    navigate(`${rolePrefix}/face-verification`);
+    setSuccess("ID uploaded successfully.");
+    setTimeout(() => navigate(`${rolePrefix}/face-verification`), 600);
   };
 
   return (
@@ -34,10 +46,13 @@ export default function UploadIdPage() {
           <h1>Upload Identification</h1>
           <p className="subtitle">Upload your ID card or passport to proceed.</p>
 
+          {error && <div className="form-error">{error}</div>}
+          {success && <div className="form-success">{success}</div>}
+
           <div className="auth-form">
             <div className="field">
               <label>Document Type</label>
-              <select value={docType} onChange={(e) => setDocType(e.target.value)} required>
+              <select value={docType} onChange={(e) => setDocType(e.target.value)}>
                 <option value="">Select document type</option>
                 <option value="id_card">ID Card</option>
                 <option value="passport">Passport</option>
