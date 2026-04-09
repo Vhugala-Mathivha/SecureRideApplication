@@ -7,6 +7,7 @@ from datetime import datetime
 # from db import db  
 
 app = Flask(__name__)
+application = app
 
 # This allows your Vercel URL (once deployed) and your local dev environment
 FRONTEND_URL = os.getenv("FRONTEND_URL", "*") 
