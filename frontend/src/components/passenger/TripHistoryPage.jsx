@@ -17,11 +17,28 @@ export default function TripHistoryPage() {
       try {
         setLoading(true);
         setError("");
+
+        // 1) Try backend first
         const res = await apiRequest("/passenger/trips/history", { method: "GET" });
-        const list = Array.isArray(res) ? res : res.trips || [];
-        if (mounted) setTrips(list);
+        const apiList = Array.isArray(res) ? res : res.trips || [];
+
+        if (apiList.length > 0) {
+          if (mounted) setTrips(apiList);
+          return;
+        }
+
+        // 2) API empty -> fallback to localStorage
+        const localList = JSON.parse(localStorage.getItem("trip_history") || "[]");
+        if (mounted) setTrips(localList);
       } catch (e) {
-        if (mounted) setError(e.message || "Failed to load trip history.");
+        // 3) API failed -> fallback to localStorage
+        const localList = JSON.parse(localStorage.getItem("trip_history") || "[]");
+
+        if (localList.length > 0) {
+          if (mounted) setTrips(localList);
+        } else {
+          if (mounted) setError(e.message || "Failed to load trip history.");
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -40,6 +57,7 @@ export default function TripHistoryPage() {
     const spent = trips
       .filter((t) => t.fare != null)
       .reduce((acc, t) => acc + Number(t.fare || 0), 0);
+
     return { total, completed, cancelled, spent };
   }, [trips]);
 
@@ -82,9 +100,11 @@ export default function TripHistoryPage() {
             <div className="history-card" key={t.id}>
               <div className="history-head">
                 <div>
-                  <div className="history-route">{t.pickup} → {t.destination}</div>
+                  <div className="history-route">
+                    {(t.pickup || "N/A")} → {(t.destination || "N/A")}
+                  </div>
                   <div className="history-sub">
-                    {t.date} · Requested {t.requestedAt || "N/A"} · Arrived {t.arrivalTime || "N/A"}
+                    {t.date || "N/A"} · Requested {t.requestedAt || "N/A"} · Arrived {t.arrivalTime || "N/A"}
                   </div>
                 </div>
                 <span className={`history-status status-${t.status || "pending"}`}>

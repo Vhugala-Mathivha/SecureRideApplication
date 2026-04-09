@@ -669,3 +669,14 @@ body {
     margin-top: 0;
   }
 }
+
+button.btn-primary,
+input[type="submit"].btn-primary {
+  background: var(--meadow) !important;
+  color: #fff !important;
+  border: none !important;
+}
+button.btn-primary:hover,
+input[type="submit"].btn-primary:hover {
+  background: var(--meadow-hover) !important;
+}

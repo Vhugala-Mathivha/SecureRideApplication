@@ -11,9 +11,9 @@ import DriverEmergencyContactsPage from "../pages/driver/DriverEmergencyContacts
 import DriverTripHistoryPage from "../pages/driver/DriverTripHistoryPage";
 import DriverNotificationsPage from "../pages/driver/DriverNotificationsPage";
 
-import VerificationConsentPage from "../pages/verification/VerificationConsentPage";
-import UploadIdPage from "../pages/verification/UploadIdPage";
-import FaceVerificationPage from "../pages/verification/FaceVerificationPage";
+import VerificationConsentPage from "../pages/auth/VerificationConsentPage";
+import UploadIdPage from "../pages/auth/UploadIdPage";
+import FaceVerificationPage from "../pages/auth/FaceVerificationPage";
 
 import PassengerDashboardPage from "../components/passenger/PassengerDashboardPage";
 import BookRidePage from "../components/passenger/BookRidePage";

@@ -29,7 +29,16 @@ export default function LoginPage() {
       });
 
       login(res.user);
-      navigate("/welcome");
+
+      // Determine dashboard route based on user type (if needed)
+      let dashboardRoute = "/dashboard";
+      if (res.user?.accountType === "driver") {
+        dashboardRoute = "/driver/dashboard";
+      } else if (res.user?.accountType === "passenger") {
+        dashboardRoute = "/passenger/dashboard";
+      }
+      navigate(dashboardRoute);
+      
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {
@@ -47,7 +56,9 @@ export default function LoginPage() {
             <p>Driver safety and verification platform.</p>
           </div>
           <div className="left-footer">
-            <span>About</span><span>FAQ</span><span>Support</span>
+            <span>About</span>
+            <span>FAQ</span>
+            <span>Support</span>
           </div>
         </div>
 
@@ -64,6 +75,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
@@ -73,6 +85,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
 
@@ -82,7 +95,11 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={submitting}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={submitting}
+            >
               {submitting ? "Signing In..." : "Sign In"}
             </button>
           </form>

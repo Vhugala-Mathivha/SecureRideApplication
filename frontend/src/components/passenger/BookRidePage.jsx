@@ -36,8 +36,6 @@ export default function BookRidePage() {
     try {
       setLoadingDrivers(true);
 
-      // Backend should return all registered drivers
-      // Example response: { drivers: [{id, name, plate, vehicle, rating, distance, eta, fare}] }
       const res = await apiRequest("/passenger/drivers", {
         method: "GET",
       });
@@ -59,8 +57,52 @@ export default function BookRidePage() {
   };
 
   const selectDriver = (driver) => {
-    // You can store selected driver in state/context/localStorage before navigating
-    navigate("/passenger/active-trip", { state: { driver } });
+    const now = new Date();
+
+    // Active trip (for ActiveTripPage)
+    const activeTrip = {
+      id: Date.now(),
+      pickup: pickup || "N/A",
+      destination: destination || "N/A",
+      date: now.toLocaleDateString(),
+      requestedAt: now.toLocaleTimeString(),
+      arrivalTime: driver.arrivalTime || "N/A",
+      status: "active",
+      driverName: driver.name || "Driver",
+      vehicle: driver.vehicle || "N/A",
+      plate: driver.plate || "N/A",
+      distance: driver.distance || "N/A",
+      eta: driver.eta || "N/A",
+      fare: driver.fare != null ? Number(driver.fare) : null,
+      paymentMethod: payment || "N/A",
+      rideType: rideType || "standard",
+      rating: Number(driver.rating || 0),
+      gradient: driver.gradient || "linear-gradient(135deg,#1f7a1f,#256f1d)",
+      initials:
+        (
+          driver.initials ||
+          driver.name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ||
+          "DR"
+        ).toUpperCase(),
+      progress: 15,
+    };
+
+    // History trip (for TripHistoryPage)
+    const historyTrip = {
+      ...activeTrip,
+      status: "completed",
+      progress: 100,
+    };
+
+    // Save active trip
+    localStorage.setItem("active_trip", JSON.stringify(activeTrip));
+
+    // Save history (newest first)
+    const existingHistory = JSON.parse(localStorage.getItem("trip_history") || "[]");
+    localStorage.setItem("trip_history", JSON.stringify([historyTrip, ...existingHistory]));
+
+    // Navigate with trip state
+    navigate("/passenger/active-trip", { state: { driver, trip: activeTrip } });
   };
 
   return (
@@ -144,8 +186,7 @@ export default function BookRidePage() {
               <div
                 className="driver-avatar"
                 style={{
-                  background:
-                    d.gradient || "linear-gradient(135deg,#1f7a1f,#256f1d)",
+                  background: d.gradient || "linear-gradient(135deg,#1f7a1f,#256f1d)",
                 }}
               >
                 {(d.initials || d.name?.split(" ").map((n) => n[0]).join("").slice(0, 2) || "DR").toUpperCase()}
