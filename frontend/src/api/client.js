@@ -1,7 +1,12 @@
-const API_BASE_URL = "http://localhost:5000/api";
+// CRA uses process.env instead of import.meta.env
+// We point to localhost:5000 as a fallback for your local development
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 export async function apiRequest(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  // We ensure there's no double slash if path starts with /
+  const url = `${API_BASE_URL}${path}`.replace(/([^:]\/)\/+/g, "$1");
+
+  const response = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),

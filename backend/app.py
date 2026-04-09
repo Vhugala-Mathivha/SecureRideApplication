@@ -2,81 +2,70 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 from datetime import datetime
-from db import db  # <-- Import your MySQL connection
+
+# We comment this out so Render doesn't crash during the test
+# from db import db  
 
 app = Flask(__name__)
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-CORS(app, resources={r"/api/*": {"origins": [FRONTEND_URL, "http://localhost:3000"]}})
+# This allows your Vercel URL (once deployed) and your local dev environment
+FRONTEND_URL = os.getenv("FRONTEND_URL", "*") 
+CORS(app, resources={r"/api/*": {"origins": [FRONTEND_URL, "http://localhost:3000", "http://localhost:5173"]}})
 
 def now_iso():
     return datetime.utcnow().isoformat(timespec="seconds") + "Z"
 
-def safe_user(row):
-    if not row: return None
-    # Remove the password field
-    return {k: v for k, v in row.items() if k != "password"}
+@app.route("/")
+def index():
+    return jsonify({"message": "SecureRide API is live on Render!"})
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "message": "Backend is working with DB"}), 200
+    # Changed message to show we are in 'Test Mode'
+    return jsonify({
+        "status": "ok", 
+        "message": "Backend is working (Database connection skipped for deployment test)"
+    }), 200
 
 @app.post("/api/auth/register")
 def register():
     data = request.get_json(silent=True) or {}
-
+    
+    # Still doing basic validation so you can test your frontend forms
     full_names = (data.get("fullNames") or "").strip()
-    email = (data.get("email") or "").strip().lower()
-    password = (data.get("password") or "").strip()
-    account_type = (data.get("accountType") or "").strip().lower()
-
     if not full_names:
         return jsonify({"error": "Full names is required"}), 400
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
-    if not password:
-        return jsonify({"error": "Password is required"}), 400
-    if not account_type or account_type not in ["driver", "passenger"]:
-        return jsonify({"error": "Account type must be 'driver' or 'passenger'"}), 400
 
-    cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT id FROM users WHERE email=%s", (email,))
-    if cursor.fetchone():
-        cursor.close()
-        return jsonify({"error": "Email already exists"}), 409
-
-    sql = "INSERT INTO users (full_names, email, password, account_type, created_at) VALUES (%s, %s, %s, %s, %s)"
-    cursor.execute(sql, (full_names, email, password, account_type, now_iso()))
-    db.commit()
-    user_id = cursor.lastrowid
-
-    cursor.execute("SELECT id, full_names, email, account_type, created_at FROM users WHERE id=%s", (user_id,))
-    user = cursor.fetchone()
-    cursor.close()
-
-    return jsonify({"message": "Registered successfully", "user": user}), 201
+    # Instead of DB logic, we return a mock success message
+    return jsonify({
+        "message": "MOCK Registration successful (No DB connection yet)",
+        "user": {
+            "id": 999,
+            "full_names": full_names,
+            "email": data.get("email"),
+            "account_type": data.get("accountType"),
+            "created_at": now_iso()
+        }
+    }), 201
 
 @app.post("/api/auth/login")
 def login():
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
-    password = (data.get("password") or "").strip()
 
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
-    if not password:
-        return jsonify({"error": "Password is required"}), 400
-
-    cursor = db.cursor(dictionary=True)
-    sql = "SELECT id, full_names, email, account_type, created_at FROM users WHERE email=%s AND password=%s"
-    cursor.execute(sql, (email, password))
-    user = cursor.fetchone()
-    cursor.close()
-
-    if not user:
-        return jsonify({"error": "Invalid credentials"}), 401
-
-    return jsonify({"message": "Login successful", "user": user}), 200
+    # Mock Login Logic: Any password works for this test!
+    return jsonify({
+        "message": "MOCK Login successful",
+        "user": {
+            "id": 999,
+            "full_names": "Test User",
+            "email": email,
+            "account_type": "passenger",
+            "created_at": now_iso()
+        }
+    }), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # Render uses the PORT environment variable
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
