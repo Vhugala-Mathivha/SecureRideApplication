@@ -28,19 +28,34 @@ export default function LoginPage() {
         }),
       });
 
-      login(res.user);
+      // DEBUG: Check what the backend actually sent
+      console.log("Login Response:", res);
 
-      // Determine dashboard route based on user type (if needed)
-      let dashboardRoute = "/dashboard";
-      if (res.user?.accountType === "driver") {
-        dashboardRoute = "/driver/dashboard";
-      } else if (res.user?.accountType === "passenger") {
-        dashboardRoute = "/passenger/dashboard";
+      if (!res.user) {
+        setError("Login failed: No user data received.");
+        return;
       }
-      navigate(dashboardRoute);
-      
+
+      // 1. Update the Auth Context first
+      await login(res.user);
+
+      // 2. Get account type (handling both snake_case and camelCase)
+      const rawType = res.user.account_type || res.user.accountType || "";
+      const type = rawType.toLowerCase().trim();
+
+      // 3. Redirect Logic
+      if (type === "driver") {
+        navigate("/driver/dashboard");
+      } else if (type === "passenger") {
+        navigate("/passenger/dashboard");
+      } else {
+        // Fallback to general dashboard if type is missing
+        navigate("/dashboard");
+      }
+
     } catch (err) {
-      setError(err.message || "Login failed. Please try again.");
+      console.error("Login Error:", err);
+      setError(err.message || "Invalid email or password.");
     } finally {
       setSubmitting(false);
     }
@@ -73,6 +88,7 @@ export default function LoginPage() {
               <label>Email Address</label>
               <input
                 type="email"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -83,6 +99,7 @@ export default function LoginPage() {
               <label>Password</label>
               <input
                 type="password"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -90,7 +107,7 @@ export default function LoginPage() {
             </div>
 
             <div className="row-end">
-              <Link to="/forgot-password" className="auth-link">
+              <Link to="/forgot-password" alt="forgot link" className="auth-link">
                 Forgot Password?
               </Link>
             </div>

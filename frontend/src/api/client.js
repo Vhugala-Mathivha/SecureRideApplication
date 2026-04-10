@@ -1,23 +1,45 @@
-// CRA uses process.env instead of import.meta.env
-// We point to localhost:5000 as a fallback for your local development
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+// Proper API base selection: deployed backend URL from env var, fallback to local dev
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
+/**
+ * Wrapper for making backend API requests.
+ * @param {string} path - The API endpoint path, e.g. '/login'
+ * @param {object} options - fetch options (method, body, etc.)
+ */
 export async function apiRequest(path, options = {}) {
-  // We ensure there's no double slash if path starts with /
-  const url = `${API_BASE_URL}${path}`.replace(/([^:]\/)\/+/g, "$1");
+  // Ensure path starts with single slash only
+  const fixedPath = path.startsWith("/") ? path : `/${path}`;
+  // Safely build the URL
+  const url = `${API_BASE_URL}${fixedPath}`.replace(/([^:]\/)\/+/g, "$1");
 
+  // Use the fetch API
   const response = await fetch(url, {
+    // Always send JSON unless overridden
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
+    // UNCOMMENT this line if your backend uses cookie-based authentication:
+    // credentials: "include",
     ...options,
   });
 
-  const data = await response.json().catch(() => ({}));
+  // Try to parse response as JSON (handles cases with no response body)
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
 
+  // Throw error for non-2xx results
   if (!response.ok) {
-    const err = new Error(data.error || data.message || "Request failed");
+    const errMsg =
+      data.error ||
+      data.message ||
+      (typeof data === "string" ? data : "Request failed");
+    const err = new Error(errMsg);
     err.status = response.status;
     err.payload = data;
     throw err;

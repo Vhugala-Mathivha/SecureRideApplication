@@ -12,7 +12,8 @@ export default function UploadIdPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const rolePrefix = user?.accountType === "passenger" ? "/passenger" : "/driver";
+  const accountType = user?.accountType || user?.account_type;
+  const rolePrefix = accountType === "passenger" ? "/passenger" : "/driver";
 
   const handleNext = () => {
     setError("");

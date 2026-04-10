@@ -23,7 +23,7 @@ export default function PassengerProfilePage() {
       verified: user?.isVerified ? "Yes" : "No",
       rating: user?.rating ?? "—",
       totalTrips: user?.totalTrips ?? 0,
-      accountType: user?.accountType || "passenger",
+      accountType: user?.accountType || user?.account_type || "passenger",
     }),
     [user]
   );

@@ -3,7 +3,6 @@ import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 
-import WelcomePage from "../pages/driver/WelcomePage";
 import CarDetailsPage from "../pages/driver/CarDetailsPage";
 import DriverDashboardPage from "../pages/driver/DriverDashboardPage";
 import TripsPage from "../pages/driver/TripsPage";
@@ -35,14 +34,7 @@ export default function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-        <Route
-          path="/welcome"
-          element={
-            <ProtectedRoute>
-              <WelcomePage />
-            </ProtectedRoute>
-          }
-        />
+        {/* REMOVED WelcomePage Route */}
 
         <Route
           path="/driver/dashboard"

@@ -5,9 +5,8 @@ export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return null; // or loader
+  if (loading) return null; // or a loader
 
-  // Not logged in
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -16,13 +15,14 @@ export default function ProtectedRoute({ children }) {
   const isDriverPath = path.startsWith("/driver");
   const isPassengerPath = path.startsWith("/passenger");
 
-  // Role-based route guard
-  if (isDriverPath && user.accountType !== "driver") {
-    return <Navigate to="/welcome" replace />;
-  }
+  const accountType = user.accountType || user.account_type;
 
-  if (isPassengerPath && user.accountType !== "passenger") {
-    return <Navigate to="/welcome" replace />;
+  // Role-based route guard
+  if (isDriverPath && accountType !== "driver") {
+    return <Navigate to="/login" replace />;
+  }
+  if (isPassengerPath && accountType !== "passenger") {
+    return <Navigate to="/login" replace />;
   }
 
   return children;
