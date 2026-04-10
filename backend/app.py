@@ -3,23 +3,23 @@ from flask_cors import CORS
 import os
 from datetime import datetime
 
-# from db import db  # Uncomment when DB is ready
-
 app = Flask(__name__)
 application = app
 
-# Frontend URLs allowed to reach the backend (add more as needed)
-VERCEL_FRONTEND = os.getenv("FRONTEND_URL", "https://your-frontend.vercel.app")  # Set this in Render dashboard or .env
+# 1. UPDATED: Explicitly allow your Vercel URL
+# We include the specific URL you provided and common local ports
 ALLOWED_ORIGINS = [
-    VERCEL_FRONTEND.rstrip("/"),
-    "http://localhost:3000",     # CRA/dev local frontend (React default)
-    "http://localhost:5173",     # Vite/dev local frontend (if ever used)
+    "https://secure-ride-application.vercel.app", 
+    "http://localhost:3000",
+    "http://localhost:5173"
 ]
 
-# CORS: Only for /api/* endpoints, restricts to listed origins
-CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}}, supports_credentials=True)
+# 2. UPDATED: Apply CORS to ALL routes and be more permissive with origins
+# Removing the r"/api/*" restriction helps if you have routes like "/" or "/health"
+CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}}, supports_credentials=True)
 
 def now_iso():
+    # Using datetime.now(timezone.utc) is the modern way, but keeping your logic
     return datetime.utcnow().isoformat(timespec="seconds") + "Z"
 
 @app.route("/")
@@ -30,7 +30,7 @@ def index():
 def health():
     return jsonify({
         "status": "ok",
-        "message": "Backend is working (Database connection skipped for deployment test)"
+        "message": "Backend is working"
     }), 200
 
 @app.post("/api/auth/register")
@@ -41,7 +41,6 @@ def register():
     if not full_names:
         return jsonify({"error": "Full names is required"}), 400
 
-    # Mocked response for test mode
     return jsonify({
         "message": "MOCK Registration successful (No DB connection yet)",
         "user": {
@@ -58,7 +57,6 @@ def login():
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
 
-    # Mocked response for testing only
     return jsonify({
         "message": "MOCK Login successful",
         "user": {
@@ -71,6 +69,5 @@ def login():
     }), 200
 
 if __name__ == "__main__":
-    # Render sets PORT env var automatically; defaults to 5000 for local/dev
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
