@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { apiRequest } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 import VerificationConsentPage from "./VerificationConsentPage";
 import UploadIdPage from "./UploadIdPage";
 import IDValidationPage from "./IDValidationPage";
@@ -9,6 +10,7 @@ import "../../styles/auth.css";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [step, setStep] = useState(0);
   const [collected, setCollected] = useState({});
   const [error, setError] = useState("");
@@ -54,7 +56,7 @@ export default function RegisterPage() {
 
     try {
       setSubmitting(true);
-      await apiRequest("/auth/register", {
+      const res = await apiRequest("/auth/register", {
         method: "POST",
         body: JSON.stringify({
           ...collected,
@@ -64,6 +66,10 @@ export default function RegisterPage() {
           password: formData.password.trim(),
         }),
       });
+
+      if (res.user) {
+        await login(res.user);
+      }
 
       // After successful registration, go to next step (Consent)
       next();
