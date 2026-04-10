@@ -1,6 +1,10 @@
 // Proper API base selection: deployed backend URL from env var, fallback to local dev
+const isProd = process.env.NODE_ENV === "production";
+
 const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_API_BASE_URL ||
+  (isProd ? "https://secureride-backend.onrender.com/api" : "http://localhost:5000/api");
 
 /**
  * Wrapper for making backend API requests.
