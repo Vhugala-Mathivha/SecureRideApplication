@@ -1,21 +1,15 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import ProgressStepper from "../../components/ProgressStepper";
 import "../../styles/auth.css";
 
-export default function UploadIdPage() {
-  const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+export default function UploadIdPage({ onNext }) { // Received onNext from RegisterPage
   const [docType, setDocType] = useState("");
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [uploading, setUploading] = useState(false);
 
-  const accountType = user?.accountType || user?.account_type;
-  const rolePrefix = accountType === "passenger" ? "/passenger" : "/driver";
-
-  const handleNext = () => {
+  const handleNext = async () => {
     setError("");
     setSuccess("");
 
@@ -28,14 +22,41 @@ export default function UploadIdPage() {
       return;
     }
 
-    updateUser({
-      idDocumentType: docType,
-      idDocumentName: file.name,
-      idDocumentUploaded: true,
-    });
+    try {
+      setUploading(true);
 
-    setSuccess("ID uploaded successfully.");
-    setTimeout(() => navigate(`${rolePrefix}/face-verification`), 600);
+      // 1. Prepare data for Cloudinary
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      uploadData.append("upload_preset", "secureride_docs"); // Your Unsigned Preset Name
+
+      // 2. Upload to your Cloud Name: dziumltnl
+      const response = await fetch("https://api.cloudinary.com/v1_1/dziumltnl/image/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+
+      if (!response.ok) throw new Error("Upload failed. Please check your connection.");
+
+      const result = await response.json();
+      const imageUrl = result.secure_url; // This is the link we save to MySQL
+
+      setSuccess("ID uploaded successfully to cloud.");
+
+      // 3. Pass the URL back to RegisterPage
+      // This merges documentPath and documentType into the 'collected' state
+      setTimeout(() => {
+        onNext({
+          documentType: docType,
+          documentPath: imageUrl,
+        });
+      }, 800);
+
+    } catch (err) {
+      setError(err.message || "Failed to upload to cloud.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -53,7 +74,11 @@ export default function UploadIdPage() {
           <div className="auth-form">
             <div className="field">
               <label>Document Type</label>
-              <select value={docType} onChange={(e) => setDocType(e.target.value)}>
+              <select 
+                value={docType} 
+                onChange={(e) => setDocType(e.target.value)}
+                disabled={uploading}
+              >
                 <option value="">Select document type</option>
                 <option value="id_card">ID Card</option>
                 <option value="passport">Passport</option>
@@ -62,18 +87,23 @@ export default function UploadIdPage() {
 
             <div className="field">
               <label>Upload Document</label>
-              <label className="file-upload">
+              <label className={`file-upload ${uploading ? 'disabled' : ''}`}>
                 <input
                   type="file"
                   accept="image/*,.pdf"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  disabled={uploading}
                 />
                 <span>{file ? file.name : "Choose ID card or passport file"}</span>
               </label>
             </div>
 
-            <button className="btn-primary" onClick={handleNext}>
-              Next: Face Verification
+            <button 
+              className="btn-primary" 
+              onClick={handleNext} 
+              disabled={uploading}
+            >
+              {uploading ? "Uploading to Cloud..." : "Next: Face Verification"}
             </button>
           </div>
         </div>

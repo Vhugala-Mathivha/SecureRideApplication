@@ -44,37 +44,53 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e) => {
+  // UPDATED: Now only validates and moves to the next step locally
+  const handleSubmitStep1 = (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
+    // Move data into 'collected' and go to step 1 (Consent)
+    // We do NOT call the API here yet.
+    next({
+      ...formData,
+      fullNames: formData.fullNames.trim(),
+      email: formData.email.trim().toLowerCase(),
+      password: formData.password.trim(),
+    });
+  };
+
+  // NEW: The final function that actually sends everything to your Render/Aiven DB
+  const handleFinalRegistration = async (finalData = {}) => {
     try {
       setSubmitting(true);
+      setError("");
+      
+      // Combine everything: Step 1 data + Consent + Documents + Face status
+      const payload = {
+        ...collected,
+        ...finalData
+      };
+
       const res = await apiRequest("/auth/register", {
         method: "POST",
-        body: JSON.stringify({
-          ...collected,
-          ...formData,
-          fullNames: formData.fullNames.trim(),
-          email: formData.email.trim().toLowerCase(),
-          password: formData.password.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.user) {
         await login(res.user);
       }
-
-      // After successful registration, go to next step (Consent)
-      next();
+      
+      setSuccess("Registration Complete!");
+      navigate("/login"); 
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.message || "Registration failed during final step");
+      // If it fails, you might want to move the step back or show an error modal
+      console.error(err);
     } finally {
       setSubmitting(false);
     }
@@ -106,7 +122,8 @@ export default function RegisterPage() {
               <div>Step 1 of 5</div>
               <progress value={1} max={5} style={{ width: 100 }} />
             </div>
-            <form className="auth-form" onSubmit={handleSubmit}>
+            {/* UPDATED handleSubmit call */}
+            <form className="auth-form" onSubmit={handleSubmitStep1}>
               {error && <div className="form-error">{error}</div>}
               {success && <div className="form-success">{success}</div>}
 
@@ -235,34 +252,37 @@ export default function RegisterPage() {
 
   // Step 1: Consent
   if (step === 1) {
-    return <VerificationConsentPage onNext={next} />;
+    return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
   }
   // Step 2: Upload ID
   if (step === 2) {
-    return <UploadIdPage onNext={next} />;
+    // Note: handleFileUpload should be called inside UploadIdPage 
+    // and the resulting URL should be passed back to onNext
+    return <UploadIdPage onNext={(data) => next(data)} />;
   }
   // Step 3: ID Validation
   if (step === 3) {
     return <IDValidationPage onNext={next} />;
   }
-  // Step 4: Face Verification
+  // Step 4: Face Verification (The FINAL Step)
   if (step === 4) {
-    // Pass a prop for redirect after verification success
     return (
       <FaceVerificationPage
-        onNext={() => {
-          // Optionally show a success screen here, or redirect immediately:
-          navigate("/login");
+        onNext={(faceData) => {
+          // Trigger the REAL API call to save everything to the database
+          handleFinalRegistration(faceData);
         }}
       />
     );
   }
 
-  // ...optionally: Show "All done!"
   return (
-    <div>
-      <h2>Registration completed!</h2>
-      <p>Redirecting to login...</p>
+    <div className="auth-page">
+      <div className="auth-card" style={{ textAlign: "center", padding: "40px" }}>
+        <h2>{submitting ? "Finalizing Registration..." : "Registration completed!"}</h2>
+        {submitting && <div className="spinner"></div>}
+        <p>Please wait while we secure your account.</p>
+      </div>
     </div>
   );
 }
