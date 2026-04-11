@@ -73,9 +73,9 @@ export default function RegisterPage() {
       setStep(5); 
       setSuccess("Account Created Successfully!");
 
-      // 3. FORCE REDIRECT: window.location.href is more reliable for final redirects
+      // 3. Use SPA navigation for redirect
       setTimeout(() => {
-        window.location.href = "/login";
+        navigate("/login", { replace: true });
       }, 2000);
 
     } catch (err) {
