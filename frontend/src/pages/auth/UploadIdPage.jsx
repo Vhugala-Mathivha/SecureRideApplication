@@ -2,7 +2,7 @@ import { useState } from "react";
 import ProgressStepper from "../../components/ProgressStepper";
 import "../../styles/auth.css";
 
-export default function UploadIdPage({ onNext }) { // Received onNext from RegisterPage
+export default function UploadIdPage({ onNext }) { 
   const [docType, setDocType] = useState("");
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
@@ -28,7 +28,7 @@ export default function UploadIdPage({ onNext }) { // Received onNext from Regis
       // 1. Prepare data for Cloudinary
       const uploadData = new FormData();
       uploadData.append("file", file);
-      uploadData.append("upload_preset", "secureride_docs"); // Your Unsigned Preset Name
+      uploadData.append("upload_preset", "secureride_docs"); 
 
       // 2. Upload to your Cloud Name: dziumltnl
       const response = await fetch("https://api.cloudinary.com/v1_1/dziumltnl/image/upload", {
@@ -36,23 +36,25 @@ export default function UploadIdPage({ onNext }) { // Received onNext from Regis
         body: uploadData,
       });
 
-      if (!response.ok) throw new Error("Upload failed. Please check your connection.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Upload failed.");
+      }
 
       const result = await response.json();
-      const imageUrl = result.secure_url; // This is the link we save to MySQL
+      const imageUrl = result.secure_url; 
 
-      setSuccess("ID uploaded successfully to cloud.");
+      setSuccess("ID uploaded successfully!");
 
-      // 3. Pass the URL back to RegisterPage
-      // This merges documentPath and documentType into the 'collected' state
-      setTimeout(() => {
-        onNext({
-          documentType: docType,
-          documentPath: imageUrl,
-        });
-      }, 800);
+      // 3. IMMEDIATE Step Change
+      // We remove the setTimeout to ensure RegisterPage receives the command instantly
+      onNext({
+        documentType: docType,
+        documentPath: imageUrl,
+      });
 
     } catch (err) {
+      console.error("Cloudinary Error:", err);
       setError(err.message || "Failed to upload to cloud.");
     } finally {
       setUploading(false);
@@ -90,11 +92,13 @@ export default function UploadIdPage({ onNext }) { // Received onNext from Regis
               <label className={`file-upload ${uploading ? 'disabled' : ''}`}>
                 <input
                   type="file"
-                  accept="image/*,.pdf"
+                  accept="image/*"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                   disabled={uploading}
                 />
-                <span>{file ? file.name : "Choose ID card or passport file"}</span>
+                <span style={{ color: file ? "#2e7d32" : "#666" }}>
+                    {file ? `📄 ${file.name}` : "Click to choose ID card or passport"}
+                </span>
               </label>
             </div>
 
