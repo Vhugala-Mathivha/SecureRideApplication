@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react"; // Added useEffect for safety
+import { useState } from "react";
 import { apiRequest } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import VerificationConsentPage from "./VerificationConsentPage";
@@ -28,16 +28,6 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   });
-
-  // Automatically navigate if success is set (Safety fallback)
-  useEffect(() => {
-    if (success.includes("Redirecting")) {
-      const timer = setTimeout(() => {
-        navigate("/login");
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, navigate]);
 
   const next = (data = {}) => {
     setCollected((prev) => ({ ...prev, ...data }));
@@ -70,26 +60,28 @@ export default function RegisterPage() {
       setError("");
       
       const payload = { ...collected, ...finalData };
-      console.log("Submitting final registration payload:", payload);
       
       const res = await apiRequest("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      // Clear the step view by moving to a 'completed' state
-      setStep(5); 
-      setSuccess("Registration Complete! Redirecting to login...");
+      // 1. Log the result to console for debugging
+      console.log("Registration successful:", res);
 
-      // Final Redirect
+      // 2. Clear view and show success screen
+      setStep(5); 
+      setSuccess("Account Created Successfully!");
+
+      // 3. FORCE REDIRECT: window.location.href is more reliable for final redirects
       setTimeout(() => {
-        navigate("/login");
+        window.location.href = "/login";
       }, 2000);
 
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.message || "Registration failed. Check if email is already taken.");
       console.error("Registration Error:", err);
-    } finally {
+      // Stay on step 3 so they can try again if it fails
       setSubmitting(false);
     }
   };
@@ -169,7 +161,9 @@ export default function RegisterPage() {
                 <label>Confirm Password</label>
                 <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
               </div>
-              <button className="btn-primary" type="submit">Continue</button>
+              <button className="btn-primary" type="submit" disabled={submitting}>
+                {submitting ? "Processing..." : "Continue"}
+              </button>
             </form>
           </div>
         </div>
@@ -180,25 +174,23 @@ export default function RegisterPage() {
   if (step === 1) return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
   if (step === 2) return <UploadIdPage onNext={(data) => next(data)} />;
   
-  // Step 3: Face Verification
   if (step === 3) {
     return (
       <FaceVerificationPage 
         onNext={(faceData) => {
-          console.log("Face Data received, triggering final registration...");
           handleFinalRegistration(faceData);
         }} 
       />
     );
   }
 
-  // Final Success View
+  // Final Success View (Step 5)
   return (
     <div className="auth-page">
       <div className="auth-card" style={{ textAlign: "center", padding: "60px" }}>
-        <div className="success-icon" style={{ fontSize: "50px", marginBottom: "20px" }}>✅</div>
-        <h2>{success || "Registration Complete!"}</h2>
-        <p>You are being redirected to the login page.</p>
+        <div className="success-icon" style={{ fontSize: "60px", marginBottom: "20px" }}>✅</div>
+        <h2 style={{ color: "var(--meadow)" }}>{success || "Success!"}</h2>
+        <p>Your account is ready. Redirecting to login...</p>
         <div className="loader-dots">
             <span>.</span><span>.</span><span>.</span>
         </div>
