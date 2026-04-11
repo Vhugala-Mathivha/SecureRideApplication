@@ -6,7 +6,7 @@ import "../../styles/auth.css";
 
 export default function FaceVerificationPage({ onNext }) {
   const navigate = useNavigate();
-  const { updateUser } = useAuth(); // Removed 'user' if not used here to keep it clean
+  const { updateUser } = useAuth();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -30,14 +30,15 @@ export default function FaceVerificationPage({ onNext }) {
     setSuccess("Registration complete! Finalizing...");
     setIsProcessing(true);
 
-    // CRITICAL FIX: Pass data back to RegisterPage so it triggers handleFinalRegistration
     setTimeout(() => {
       if (onNext) {
         onNext({ faceVerified: true, status: "verified" });
+        // Redirect will be handled by RegisterPage after successful registration.
       } else {
         // Fallback for standalone testing
         navigate("/login");
       }
+      setIsProcessing(false);
     }, 1000);
   };
 
@@ -48,7 +49,7 @@ export default function FaceVerificationPage({ onNext }) {
           className="auth-right"
           style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}
         >
-          <ProgressStepper currentStep={4} /> {/* Adjusted step to match your 1-4 flow */}
+          <ProgressStepper currentStep={4} />
 
           <h1 style={{ fontWeight: 700, marginBottom: 6 }}>
             Live Facial Verification
