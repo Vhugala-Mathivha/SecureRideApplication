@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { apiRequest } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
@@ -13,6 +13,8 @@ export default function RegisterPage() {
   const [step, setStep] = useState(0);
   const [collected, setCollected] = useState({});
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     fullNames: "",
@@ -29,6 +31,7 @@ export default function RegisterPage() {
 
   const next = (data = {}) => {
     setCollected((prev) => ({ ...prev, ...data }));
+    setError("");
     setStep((s) => s + 1);
   };
 
@@ -38,6 +41,7 @@ export default function RegisterPage() {
 
   const handleSubmitStep1 = (e) => {
     e.preventDefault();
+    setError("");
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -52,34 +56,58 @@ export default function RegisterPage() {
 
   const handleFinalRegistration = async (finalData = {}) => {
     try {
+      setSubmitting(true);
+      setError("");
+      
       const payload = { ...collected, ...finalData };
       
-      // Hit the API
-      await apiRequest("/auth/register", {
+      const res = await apiRequest("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      // DIRECT REDIRECT - No timers, no waiting
-      navigate("/login");
+      // 1. Log the result to console for debugging
+      console.log("Registration successful:", res);
+
+      // 2. Clear view and show success screen
+      setStep(5); 
+      setSuccess("Account Created Successfully!");
+
+      // 3. FORCE REDIRECT: window.location.href is more reliable for final redirects
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
 
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.message || "Registration failed. Check if email is already taken.");
+      console.error("Registration Error:", err);
+      // Stay on step 3 so they can try again if it fails
+      setSubmitting(false);
     }
   };
 
-  // --- RENDERING ---
+  // --- STEP RENDERING ---
 
   if (step === 0) {
     return (
       <div className="auth-page">
         <div className="auth-card">
+          <div className="auth-left">
+            <div className="watermark">SR</div>
+            <div className="brand-content">
+              <h2>SecureRide</h2>
+              <p>Create your verified account using your official personal details.</p>
+            </div>
+          </div>
           <div className="auth-right">
             <h1>Create Account</h1>
+            <p className="subtitle">Step 1 of 4</p>
+            <progress value={1} max={4} style={{ width: "100%", marginBottom: "20px" }} />
+            
             <form className="auth-form" onSubmit={handleSubmitStep1}>
               {error && <div className="form-error">{error}</div>}
               <div className="field">
-                <label>Full Names</label>
+                <label>Full Names (as per ID)</label>
                 <input name="fullNames" type="text" value={formData.fullNames} onChange={handleChange} required />
               </div>
               <div className="field">
@@ -92,6 +120,7 @@ export default function RegisterPage() {
                   <option value="">Select gender</option>
                   <option value="female">Female</option>
                   <option value="male">Male</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
               <div className="field">
@@ -99,9 +128,9 @@ export default function RegisterPage() {
                 <select name="race" value={formData.race} onChange={handleChange} required>
                   <option value="">Select race</option>
                   <option value="african">African</option>
-                  <option value="white">White</option>
                   <option value="coloured">Coloured</option>
                   <option value="indian_asian">Indian / Asian</option>
+                  <option value="white">White</option>
                 </select>
               </div>
               <div className="field">
@@ -132,7 +161,9 @@ export default function RegisterPage() {
                 <label>Confirm Password</label>
                 <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
               </div>
-              <button className="btn-primary" type="submit">Continue</button>
+              <button className="btn-primary" type="submit" disabled={submitting}>
+                {submitting ? "Processing..." : "Continue"}
+              </button>
             </form>
           </div>
         </div>
@@ -142,7 +173,28 @@ export default function RegisterPage() {
 
   if (step === 1) return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
   if (step === 2) return <UploadIdPage onNext={(data) => next(data)} />;
-  if (step === 3) return <FaceVerificationPage onNext={handleFinalRegistration} />;
+  
+  if (step === 3) {
+    return (
+      <FaceVerificationPage 
+        onNext={(faceData) => {
+          handleFinalRegistration(faceData);
+        }} 
+      />
+    );
+  }
 
-  return null;
+  // Final Success View (Step 5)
+  return (
+    <div className="auth-page">
+      <div className="auth-card" style={{ textAlign: "center", padding: "60px" }}>
+        <div className="success-icon" style={{ fontSize: "60px", marginBottom: "20px" }}>✅</div>
+        <h2 style={{ color: "var(--meadow)" }}>{success || "Success!"}</h2>
+        <p>Your account is ready. Redirecting to login...</p>
+        <div className="loader-dots">
+            <span>.</span><span>.</span><span>.</span>
+        </div>
+      </div>
+    </div>
+  );
 }
