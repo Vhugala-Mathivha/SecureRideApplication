@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // 1. All your original fields are back here
+  // Your original form fields
   const [formData, setFormData] = useState({
     fullNames: "",
     idNumber: "",
@@ -31,6 +31,8 @@ export default function RegisterPage() {
   });
 
   const next = (data = {}) => {
+    // This will help you see if the step actually changes in the F12 Console
+    console.log(`Moving from Step ${step} to ${step + 1}`, data);
     setCollected((prev) => ({ ...prev, ...data }));
     setError("");
     setStep((s) => s + 1);
@@ -47,7 +49,6 @@ export default function RegisterPage() {
       setError("Passwords do not match");
       return;
     }
-    // Save locally and move to Consent
     next({
       ...formData,
       fullNames: formData.fullNames.trim(),
@@ -59,7 +60,6 @@ export default function RegisterPage() {
   const handleFinalRegistration = async (finalData = {}) => {
     try {
       setSubmitting(true);
-      // This payload now contains EVERYTHING from Step 1 to Step 4
       const payload = { ...collected, ...finalData };
       
       const res = await apiRequest("/auth/register", {
@@ -78,7 +78,9 @@ export default function RegisterPage() {
     }
   };
 
-  // --- STEP 0: THE FULL FORM ---
+  // --- STEP RENDERING ---
+
+  // Step 0: The Full Form
   if (step === 0) {
     return (
       <div className="auth-page">
@@ -172,13 +174,28 @@ export default function RegisterPage() {
   }
 
   // Step 1: Consent
-  if (step === 1) return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
+  if (step === 1) {
+    return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
+  }
 
   // Step 2: Upload ID
-  if (step === 2) return <UploadIdPage onNext={(data) => next(data)} />;
+  if (step === 2) {
+    return <UploadIdPage onNext={(data) => next(data)} />;
+  }
 
-  // Step 3: Face Verification (The Final Save)
-  if (step === 3) return <FaceVerificationPage onNext={(faceData) => handleFinalRegistration(faceData)} />;
+  // Step 3: Face Verification
+  if (step === 3) {
+    return <FaceVerificationPage onNext={(faceData) => handleFinalRegistration(faceData)} />;
+  }
 
-  return null;
+  // FINAL FALLBACK: If step becomes 4 or something breaks, show this instead of a grey screen
+  return (
+    <div className="auth-page">
+      <div className="auth-card" style={{ textAlign: "center", padding: "40px" }}>
+        <h2>{submitting ? "Finalizing Registration..." : "Processing Step..."}</h2>
+        {error && <div className="form-error">{error}</div>}
+        <p>Please wait while we secure your account.</p>
+      </div>
+    </div>
+  );
 }
