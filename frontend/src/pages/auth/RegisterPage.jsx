@@ -4,7 +4,6 @@ import { apiRequest } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import VerificationConsentPage from "./VerificationConsentPage";
 import UploadIdPage from "./UploadIdPage";
-// import IDValidationPage from "./IDValidationPage"; // Removed if not used
 import FaceVerificationPage from "./FaceVerificationPage";
 import "../../styles/auth.css";
 
@@ -17,6 +16,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // 1. All your original fields are back here
   const [formData, setFormData] = useState({
     fullNames: "",
     idNumber: "",
@@ -31,7 +31,6 @@ export default function RegisterPage() {
   });
 
   const next = (data = {}) => {
-    console.log("Advancing to next step with data:", data);
     setCollected((prev) => ({ ...prev, ...data }));
     setError("");
     setStep((s) => s + 1);
@@ -43,10 +42,12 @@ export default function RegisterPage() {
 
   const handleSubmitStep1 = (e) => {
     e.preventDefault();
+    setError("");
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
+    // Save locally and move to Consent
     next({
       ...formData,
       fullNames: formData.fullNames.trim(),
@@ -58,6 +59,7 @@ export default function RegisterPage() {
   const handleFinalRegistration = async (finalData = {}) => {
     try {
       setSubmitting(true);
+      // This payload now contains EVERYTHING from Step 1 to Step 4
       const payload = { ...collected, ...finalData };
       
       const res = await apiRequest("/auth/register", {
@@ -76,9 +78,7 @@ export default function RegisterPage() {
     }
   };
 
-  // --- STEP RENDERING ---
-
-  // Step 0: Initial Form
+  // --- STEP 0: THE FULL FORM ---
   if (step === 0) {
     return (
       <div className="auth-page">
@@ -92,22 +92,77 @@ export default function RegisterPage() {
           </div>
           <div className="auth-right">
             <h1>Create Account</h1>
-            <div style={{ marginBottom: 12 }}>
-              <div>Step 1 of 4</div>
-              <progress value={1} max={4} style={{ width: "100%" }} />
-            </div>
+            <p className="subtitle">Step 1 of 4</p>
+            <progress value={1} max={4} style={{ width: "100%", marginBottom: "20px" }} />
+            
             <form className="auth-form" onSubmit={handleSubmitStep1}>
               {error && <div className="form-error">{error}</div>}
+
               <div className="field">
-                <label>Full Names</label>
+                <label>Full Names (as per ID)</label>
                 <input name="fullNames" type="text" value={formData.fullNames} onChange={handleChange} required />
               </div>
-              {/* ... Keep all your other input fields (ID, Gender, Race, etc.) here ... */}
+
               <div className="field">
                 <label>ID Number</label>
                 <input name="idNumber" type="text" value={formData.idNumber} onChange={handleChange} required />
               </div>
-              {/* Note: I'm shortening the display here for brevity, keep your full list of fields! */}
+
+              <div className="field">
+                <label>Gender</label>
+                <select name="gender" value={formData.gender} onChange={handleChange} required>
+                  <option value="">Select gender</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Race</label>
+                <select name="race" value={formData.race} onChange={handleChange} required>
+                  <option value="">Select race</option>
+                  <option value="african">African</option>
+                  <option value="coloured">Coloured</option>
+                  <option value="indian_asian">Indian / Asian</option>
+                  <option value="white">White</option>
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Account Type</label>
+                <select name="accountType" value={formData.accountType} onChange={handleChange} required>
+                  <option value="">Select type</option>
+                  <option value="driver">Driver</option>
+                  <option value="passenger">Passenger</option>
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Address</label>
+                <input name="address" type="text" value={formData.address} onChange={handleChange} required />
+              </div>
+
+              <div className="field">
+                <label>Email Address</label>
+                <input name="email" type="email" value={formData.email} onChange={handleChange} required />
+              </div>
+
+              <div className="field">
+                <label>Contact Number</label>
+                <input name="contactNumber" type="tel" value={formData.contactNumber} onChange={handleChange} required />
+              </div>
+
+              <div className="field">
+                <label>Create Password</label>
+                <input name="password" type="password" value={formData.password} onChange={handleChange} required />
+              </div>
+
+              <div className="field">
+                <label>Confirm Password</label>
+                <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
+              </div>
+
               <button className="btn-primary" type="submit">Continue</button>
             </form>
           </div>
@@ -116,32 +171,14 @@ export default function RegisterPage() {
     );
   }
 
-  // Step 1: Consent (Stepper says 2)
-  if (step === 1) {
-    return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
-  }
+  // Step 1: Consent
+  if (step === 1) return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
 
-  // Step 2: Upload ID (Stepper says 3)
-  if (step === 2) {
-    return <UploadIdPage onNext={(data) => next(data)} />;
-  }
+  // Step 2: Upload ID
+  if (step === 2) return <UploadIdPage onNext={(data) => next(data)} />;
 
-  // Step 3: Face Verification (Stepper says 4 - FINAL)
-  if (step === 3) {
-    return (
-      <FaceVerificationPage 
-        onNext={(faceData) => handleFinalRegistration(faceData)} 
-      />
-    );
-  }
+  // Step 3: Face Verification (The Final Save)
+  if (step === 3) return <FaceVerificationPage onNext={(faceData) => handleFinalRegistration(faceData)} />;
 
-  // Fallback / Loading
-  return (
-    <div className="auth-page">
-      <div className="auth-card" style={{ textAlign: "center" }}>
-        <h2>{submitting ? "Processing..." : "Redirecting..."}</h2>
-        {error && <div className="form-error">{error}</div>}
-      </div>
-    </div>
-  );
+  return null;
 }
