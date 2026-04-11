@@ -6,36 +6,36 @@ import "../../styles/auth.css";
 
 export default function FaceVerificationPage({ onNext }) {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { updateUser } = useAuth(); // Removed 'user' if not used here to keep it clean
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const meadow = "var(--meadow)"; // Make sure this variable is set in your CSS!
+  const meadow = "var(--meadow)"; 
 
   const handleVerify = () => {
     setError("");
-    setSuccess("");
+    setSuccess("Face scanning... Please hold still.");
+    setIsProcessing(true);
 
-    // TODO: Replace with real webcam + backend verification
-    updateUser({ faceVerified: true });
-    setSuccess("Face verification completed.");
-
+    // Simulating a successful scan
     setTimeout(() => {
-      if (onNext) {
-        onNext();
-      } else {
-        navigate("/login");
-      }
-    }, 1000);
+      setSuccess("Face verification completed successfully!");
+      setIsProcessing(false);
+    }, 1500);
   };
 
   const handleComplete = () => {
     setError("");
-    setSuccess("Registration complete!");
+    setSuccess("Registration complete! Finalizing...");
+    setIsProcessing(true);
+
+    // CRITICAL FIX: Pass data back to RegisterPage so it triggers handleFinalRegistration
     setTimeout(() => {
       if (onNext) {
-        onNext();
+        onNext({ faceVerified: true, status: "verified" });
       } else {
+        // Fallback for standalone testing
         navigate("/login");
       }
     }, 1000);
@@ -48,7 +48,7 @@ export default function FaceVerificationPage({ onNext }) {
           className="auth-right"
           style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}
         >
-          <ProgressStepper currentStep={5} />
+          <ProgressStepper currentStep={4} /> {/* Adjusted step to match your 1-4 flow */}
 
           <h1 style={{ fontWeight: 700, marginBottom: 6 }}>
             Live Facial Verification
@@ -73,7 +73,7 @@ export default function FaceVerificationPage({ onNext }) {
               flexDirection: "row",
               justifyContent: "center",
               alignItems: "center",
-              gap: "24px", // space between buttons
+              gap: "24px",
               marginTop: "28px",
               width: "100%",
             }}
@@ -81,22 +81,26 @@ export default function FaceVerificationPage({ onNext }) {
             <button
               className="btn-primary"
               onClick={handleVerify}
+              disabled={isProcessing}
               style={{
-                background: meadow,
-                borderColor: meadow,
+                background: isProcessing ? "#ccc" : meadow,
+                borderColor: isProcessing ? "#ccc" : meadow,
                 color: "#fff",
                 fontWeight: 600,
                 borderRadius: "8px",
                 height: "44px",
                 padding: "0 28px",
-                fontSize: "1rem"
+                fontSize: "1rem",
+                cursor: isProcessing ? "not-allowed" : "pointer"
               }}
             >
-              Start Verification
+              {isProcessing ? "Processing..." : "Start Verification"}
             </button>
+            
             <button
               type="button"
               onClick={handleComplete}
+              disabled={isProcessing}
               style={{
                 background: meadow,
                 borderColor: meadow,
@@ -105,7 +109,8 @@ export default function FaceVerificationPage({ onNext }) {
                 borderRadius: "8px",
                 height: "44px",
                 padding: "0 28px",
-                fontSize: "1rem"
+                fontSize: "1rem",
+                opacity: isProcessing ? 0.7 : 1
               }}
             >
               Complete & Register

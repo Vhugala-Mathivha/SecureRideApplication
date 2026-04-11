@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect for safety
 import { apiRequest } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
 import VerificationConsentPage from "./VerificationConsentPage";
@@ -16,7 +16,6 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Your original form fields
   const [formData, setFormData] = useState({
     fullNames: "",
     idNumber: "",
@@ -30,8 +29,17 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
 
+  // Automatically navigate if success is set (Safety fallback)
+  useEffect(() => {
+    if (success.includes("Redirecting")) {
+      const timer = setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, navigate]);
+
   const next = (data = {}) => {
-    console.log(`Moving from Step ${step} to ${step + 1}`, data);
     setCollected((prev) => ({ ...prev, ...data }));
     setError("");
     setStep((s) => s + 1);
@@ -61,24 +69,26 @@ export default function RegisterPage() {
       setSubmitting(true);
       setError("");
       
-      // Combine all steps data
       const payload = { ...collected, ...finalData };
+      console.log("Submitting final registration payload:", payload);
       
       const res = await apiRequest("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      // Show success message
+      // Clear the step view by moving to a 'completed' state
+      setStep(5); 
       setSuccess("Registration Complete! Redirecting to login...");
 
-      // Redirect after a short delay so the user sees the success message
+      // Final Redirect
       setTimeout(() => {
         navigate("/login");
-      }, 1500);
+      }, 2000);
 
     } catch (err) {
       setError(err.message || "Registration failed");
+      console.error("Registration Error:", err);
     } finally {
       setSubmitting(false);
     }
@@ -86,7 +96,6 @@ export default function RegisterPage() {
 
   // --- STEP RENDERING ---
 
-  // Step 0: The Full Form
   if (step === 0) {
     return (
       <div className="auth-page">
@@ -105,17 +114,14 @@ export default function RegisterPage() {
             
             <form className="auth-form" onSubmit={handleSubmitStep1}>
               {error && <div className="form-error">{error}</div>}
-
               <div className="field">
                 <label>Full Names (as per ID)</label>
                 <input name="fullNames" type="text" value={formData.fullNames} onChange={handleChange} required />
               </div>
-
               <div className="field">
                 <label>ID Number</label>
                 <input name="idNumber" type="text" value={formData.idNumber} onChange={handleChange} required />
               </div>
-
               <div className="field">
                 <label>Gender</label>
                 <select name="gender" value={formData.gender} onChange={handleChange} required>
@@ -125,7 +131,6 @@ export default function RegisterPage() {
                   <option value="other">Other</option>
                 </select>
               </div>
-
               <div className="field">
                 <label>Race</label>
                 <select name="race" value={formData.race} onChange={handleChange} required>
@@ -136,7 +141,6 @@ export default function RegisterPage() {
                   <option value="white">White</option>
                 </select>
               </div>
-
               <div className="field">
                 <label>Account Type</label>
                 <select name="accountType" value={formData.accountType} onChange={handleChange} required>
@@ -145,32 +149,26 @@ export default function RegisterPage() {
                   <option value="passenger">Passenger</option>
                 </select>
               </div>
-
               <div className="field">
                 <label>Address</label>
                 <input name="address" type="text" value={formData.address} onChange={handleChange} required />
               </div>
-
               <div className="field">
                 <label>Email Address</label>
                 <input name="email" type="email" value={formData.email} onChange={handleChange} required />
               </div>
-
               <div className="field">
                 <label>Contact Number</label>
                 <input name="contactNumber" type="tel" value={formData.contactNumber} onChange={handleChange} required />
               </div>
-
               <div className="field">
                 <label>Create Password</label>
                 <input name="password" type="password" value={formData.password} onChange={handleChange} required />
               </div>
-
               <div className="field">
                 <label>Confirm Password</label>
                 <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
               </div>
-
               <button className="btn-primary" type="submit">Continue</button>
             </form>
           </div>
@@ -179,29 +177,31 @@ export default function RegisterPage() {
     );
   }
 
-  // Step 1: Consent
-  if (step === 1) {
-    return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
-  }
-
-  // Step 2: Upload ID
-  if (step === 2) {
-    return <UploadIdPage onNext={(data) => next(data)} />;
-  }
-
+  if (step === 1) return <VerificationConsentPage onNext={(data) => next({ ...data, consentGiven: true })} />;
+  if (step === 2) return <UploadIdPage onNext={(data) => next(data)} />;
+  
   // Step 3: Face Verification
   if (step === 3) {
-    return <FaceVerificationPage onNext={(faceData) => handleFinalRegistration(faceData)} />;
+    return (
+      <FaceVerificationPage 
+        onNext={(faceData) => {
+          console.log("Face Data received, triggering final registration...");
+          handleFinalRegistration(faceData);
+        }} 
+      />
+    );
   }
 
-  // FINAL FALLBACK: If step becomes 4 or something breaks, show this instead of a grey screen
+  // Final Success View
   return (
     <div className="auth-page">
-      <div className="auth-card" style={{ textAlign: "center", padding: "40px" }}>
-        <h2>{submitting ? "Finalizing Registration..." : "Processing Step..."}</h2>
-        {error && <div className="form-error">{error}</div>}
-        {success && <div className="form-success">{success}</div>}
-        <p>Please wait while we secure your account.</p>
+      <div className="auth-card" style={{ textAlign: "center", padding: "60px" }}>
+        <div className="success-icon" style={{ fontSize: "50px", marginBottom: "20px" }}>✅</div>
+        <h2>{success || "Registration Complete!"}</h2>
+        <p>You are being redirected to the login page.</p>
+        <div className="loader-dots">
+            <span>.</span><span>.</span><span>.</span>
+        </div>
       </div>
     </div>
   );
