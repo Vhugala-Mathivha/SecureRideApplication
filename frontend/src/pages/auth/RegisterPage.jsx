@@ -31,7 +31,6 @@ export default function RegisterPage() {
   });
 
   const next = (data = {}) => {
-    // This will help you see if the step actually changes in the F12 Console
     console.log(`Moving from Step ${step} to ${step + 1}`, data);
     setCollected((prev) => ({ ...prev, ...data }));
     setError("");
@@ -60,6 +59,9 @@ export default function RegisterPage() {
   const handleFinalRegistration = async (finalData = {}) => {
     try {
       setSubmitting(true);
+      setError("");
+      
+      // Combine all steps data
       const payload = { ...collected, ...finalData };
       
       const res = await apiRequest("/auth/register", {
@@ -67,10 +69,14 @@ export default function RegisterPage() {
         body: JSON.stringify(payload),
       });
 
-      if (res.user) await login(res.user);
-      
-      setSuccess("Registration Complete!");
-      setTimeout(() => navigate("/login"), 1500);
+      // Show success message
+      setSuccess("Registration Complete! Redirecting to login...");
+
+      // Redirect after a short delay so the user sees the success message
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {
@@ -194,6 +200,7 @@ export default function RegisterPage() {
       <div className="auth-card" style={{ textAlign: "center", padding: "40px" }}>
         <h2>{submitting ? "Finalizing Registration..." : "Processing Step..."}</h2>
         {error && <div className="form-error">{error}</div>}
+        {success && <div className="form-success">{success}</div>}
         <p>Please wait while we secure your account.</p>
       </div>
     </div>
