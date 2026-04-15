@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { apiRequest } from "../../client"; // <-- Update this path if needed!
 import "../../styles/auth.css";
 import ProgressStepper from "../../components/ProgressStepper";
 
@@ -54,25 +53,35 @@ export default function CarDetailsPage() {
     };
 
     try {
-      // Use centralized API handler
-      await apiRequest("/vehicles/register", {
+      // Determine if we should use localhost or the live Render API
+      const isLocal = window.location.hostname === "localhost";
+      const API_BASE_URL = isLocal 
+        ? "http://localhost:5000" 
+        : "https://secureride-api.onrender.com/api";
+
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/register`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(vehiclePayload),
       });
 
-      updateUser?.({
-        carDetailsCompleted: true,
-        carDetails: vehiclePayload,
-        vehicleModel: `${car.make} ${car.model}`.trim(),
-        licensePlate: car.plateNumber,
-      });
-      // Redirect to dashboard as before
-      navigate("/driver/dashboard");
-
+      if (response.ok) {
+        updateUser?.({
+          carDetailsCompleted: true,
+          carDetails: vehiclePayload,
+          vehicleModel: `${car.make} ${car.model}`.trim(),
+          licensePlate: car.plateNumber,
+        });
+        
+        // REDIRECT TO DASHBOARD AS REQUESTED
+        navigate("/driver/dashboard"); 
+      } else {
+        const errData = await response.json();
+        alert(`Error: ${errData.error}`);
+      }
     } catch (error) {
-      // Show error message
-      alert(error?.message || "Failed to connect to the server. Ensure the API is running.");
-      console.error("Car details submission error:", error);
+      console.error("Connection error:", error);
+      alert("Failed to connect to the server. Ensure the API is running.");
     }
   };
 
@@ -102,26 +111,32 @@ export default function CarDetailsPage() {
               <label>Car Make</label>
               <input name="make" type="text" placeholder="e.g. Toyota" value={car.make} onChange={handleChange} required />
             </div>
+
             <div className="field">
               <label>Car Model</label>
               <input name="model" type="text" placeholder="e.g. Corolla" value={car.model} onChange={handleChange} required />
             </div>
+
             <div className="field">
               <label>Year</label>
               <input name="year" type="number" placeholder="e.g. 2020" value={car.year} onChange={handleChange} required />
             </div>
+
             <div className="field">
               <label>Plate Number</label>
               <input name="plateNumber" type="text" placeholder="e.g. CA 123-456" value={car.plateNumber} onChange={handleChange} required />
             </div>
+
             <div className="field">
               <label>Vehicle Color</label>
               <input name="color" type="text" placeholder="e.g. White" value={car.color} onChange={handleChange} required />
             </div>
+
             <div className="field">
               <label>Licence Expiry Date</label>
               <input name="licenseExpiryDate" type="date" value={car.licenseExpiryDate} onChange={handleChange} required />
             </div>
+
             <div className="field">
               <label>Upload Licence Photo</label>
               <label className="file-upload">
