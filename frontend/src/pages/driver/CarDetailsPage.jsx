@@ -57,7 +57,7 @@ export default function CarDetailsPage() {
       const isLocal = window.location.hostname === "localhost";
       const API_BASE_URL = isLocal 
         ? "http://localhost:5000" 
-        : "https://secureride-api.onrender.com"; // Your actual Render URL
+        : "https://secureride-api.onrender.com/api";
 
       const response = await fetch(`${API_BASE_URL}/api/vehicles/register`, {
         method: "POST",
