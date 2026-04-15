@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext"; //
+import { useAuth } from "../../context/AuthContext";
 import "../../styles/auth.css";
 import ProgressStepper from "../../components/ProgressStepper";
 
 export default function CarDetailsPage() {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth(); //
+  const { user, updateUser } = useAuth();
 
   const [car, setCar] = useState({
     make: user?.carDetails?.make || "",
@@ -41,9 +41,8 @@ export default function CarDetailsPage() {
       return;
     }
 
-    // Payload to send to backend
     const vehiclePayload = {
-      driverId: user?.id, // Assumes user object from login contains 'id'
+      driverId: user?.id, 
       make: car.make,
       model: car.model,
       year: car.year,
@@ -54,28 +53,35 @@ export default function CarDetailsPage() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/vehicles/register", {
+      // Determine if we should use localhost or the live Render API
+      const isLocal = window.location.hostname === "localhost";
+      const API_BASE_URL = isLocal 
+        ? "http://localhost:5000" 
+        : "https://secureride-api.onrender.com"; // Your actual Render URL
+
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(vehiclePayload),
       });
 
       if (response.ok) {
-        // Sync with your AuthContext
         updateUser?.({
           carDetailsCompleted: true,
           carDetails: vehiclePayload,
           vehicleModel: `${car.make} ${car.model}`.trim(),
           licensePlate: car.plateNumber,
         });
-        navigate("/driver/verification-consent");
+        
+        // REDIRECT TO DASHBOARD AS REQUESTED
+        navigate("/driver/dashboard"); 
       } else {
         const errData = await response.json();
         alert(`Error: ${errData.error}`);
       }
     } catch (error) {
       console.error("Connection error:", error);
-      alert("Failed to connect to the server.");
+      alert("Failed to connect to the server. Ensure the API is running.");
     }
   };
 
