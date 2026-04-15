@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext"; //
 import "../../styles/auth.css";
 import ProgressStepper from "../../components/ProgressStepper";
 
 export default function CarDetailsPage() {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser } = useAuth(); //
 
   const [car, setCar] = useState({
     make: user?.carDetails?.make || "",
@@ -33,7 +33,7 @@ export default function CarDetailsPage() {
     setLicenseFileName(file ? file.name : "");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!car.licensePhoto && !licenseFileName) {
@@ -41,22 +41,42 @@ export default function CarDetailsPage() {
       return;
     }
 
-    updateUser?.({
-      carDetailsCompleted: true,
-      carDetails: {
-        make: car.make,
-        model: car.model,
-        year: car.year,
-        plateNumber: car.plateNumber,
-        color: car.color,
-        licenseExpiryDate: car.licenseExpiryDate,
-        licensePhotoName: car.licensePhoto ? licenseFileName : licenseFileName,
-      },
-      vehicleModel: `${car.make} ${car.model}`.trim(),
-      licensePlate: car.plateNumber,
-    });
+    // Payload to send to backend
+    const vehiclePayload = {
+      driverId: user?.id, // Assumes user object from login contains 'id'
+      make: car.make,
+      model: car.model,
+      year: car.year,
+      plateNumber: car.plateNumber,
+      color: car.color,
+      licenseExpiryDate: car.licenseExpiryDate,
+      licensePhotoName: car.licensePhoto ? car.licensePhoto.name : licenseFileName,
+    };
 
-    navigate("/driver/verification-consent");
+    try {
+      const response = await fetch("http://localhost:5000/api/vehicles/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(vehiclePayload),
+      });
+
+      if (response.ok) {
+        // Sync with your AuthContext
+        updateUser?.({
+          carDetailsCompleted: true,
+          carDetails: vehiclePayload,
+          vehicleModel: `${car.make} ${car.model}`.trim(),
+          licensePlate: car.plateNumber,
+        });
+        navigate("/driver/verification-consent");
+      } else {
+        const errData = await response.json();
+        alert(`Error: ${errData.error}`);
+      }
+    } catch (error) {
+      console.error("Connection error:", error);
+      alert("Failed to connect to the server.");
+    }
   };
 
   if (!user) return null;
@@ -71,88 +91,44 @@ export default function CarDetailsPage() {
             <p>Driver safety and verification platform.</p>
           </div>
           <div className="left-footer">
-            <span>About</span>
-            <span>FAQ</span>
-            <span>Support</span>
+            <span>About</span><span>FAQ</span><span>Support</span>
           </div>
         </div>
 
         <div className="auth-right">
           <ProgressStepper currentStep={1} />
-
           <h1>Car Details</h1>
           <p className="subtitle">Please provide your vehicle and licence information.</p>
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="field">
               <label>Car Make</label>
-              <input
-                name="make"
-                type="text"
-                placeholder="e.g. Toyota"
-                value={car.make}
-                onChange={handleChange}
-                required
-              />
+              <input name="make" type="text" placeholder="e.g. Toyota" value={car.make} onChange={handleChange} required />
             </div>
 
             <div className="field">
               <label>Car Model</label>
-              <input
-                name="model"
-                type="text"
-                placeholder="e.g. Corolla"
-                value={car.model}
-                onChange={handleChange}
-                required
-              />
+              <input name="model" type="text" placeholder="e.g. Corolla" value={car.model} onChange={handleChange} required />
             </div>
 
             <div className="field">
               <label>Year</label>
-              <input
-                name="year"
-                type="number"
-                placeholder="e.g. 2020"
-                value={car.year}
-                onChange={handleChange}
-                required
-              />
+              <input name="year" type="number" placeholder="e.g. 2020" value={car.year} onChange={handleChange} required />
             </div>
 
             <div className="field">
               <label>Plate Number</label>
-              <input
-                name="plateNumber"
-                type="text"
-                placeholder="e.g. CA 123-456"
-                value={car.plateNumber}
-                onChange={handleChange}
-                required
-              />
+              <input name="plateNumber" type="text" placeholder="e.g. CA 123-456" value={car.plateNumber} onChange={handleChange} required />
             </div>
 
             <div className="field">
               <label>Vehicle Color</label>
-              <input
-                name="color"
-                type="text"
-                placeholder="e.g. White"
-                value={car.color}
-                onChange={handleChange}
-                required
-              />
+              <input name="color" type="text" placeholder="e.g. White" value={car.color} onChange={handleChange} required />
             </div>
 
             <div className="field">
               <label>Licence Expiry Date</label>
-              <input
-                name="licenseExpiryDate"
-                type="date"
-                value={car.licenseExpiryDate}
-                onChange={handleChange}
-                required
-              />
+              <input name="licenseExpiryDate" type="date" value={car.licenseExpiryDate} onChange={handleChange} required />
             </div>
 
             <div className="field">
@@ -163,9 +139,7 @@ export default function CarDetailsPage() {
               </label>
             </div>
 
-            <button className="btn-primary" type="submit">
-              Save & Continue
-            </button>
+            <button className="btn-primary" type="submit">Save & Continue</button>
           </form>
         </div>
       </div>
